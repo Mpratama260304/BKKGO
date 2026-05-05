@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, shortUrl } from '../api';
 
@@ -7,6 +7,13 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guestEnabled, setGuestEnabled] = useState(true);
+
+  useEffect(() => {
+    api('/auth/config')
+      .then((c) => setGuestEnabled(c.guestShortenEnabled !== false))
+      .catch(() => {});
+  }, []);
 
   async function shorten(e) {
     e.preventDefault();
@@ -38,15 +45,23 @@ export default function Home() {
             <input
               required
               type="url"
-              placeholder="Paste a long URL — https://example.com/..."
-              className="flex-1 px-4 py-3 text-slate-800 rounded-lg focus:outline-none"
+              placeholder={guestEnabled ? "Paste a long URL — https://example.com/..." : "Guest shortening is disabled — please sign in"}
+              className="flex-1 px-4 py-3 text-slate-800 rounded-lg focus:outline-none disabled:bg-slate-100"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
+              disabled={!guestEnabled}
             />
-            <button disabled={loading} className="btn-primary px-6 py-3 text-base">
+            <button disabled={loading || !guestEnabled} className="btn-primary px-6 py-3 text-base">
               {loading ? 'Shortening…' : 'Shorten URL'}
             </button>
           </form>
+
+          {!guestEnabled && (
+            <div className="mt-3 text-sm text-brand-100">
+              Anonymous shortening is currently disabled by the administrator.{' '}
+              <Link to="/login" className="underline font-semibold">Sign in</Link> to create links.
+            </div>
+          )}
 
           {error && <div className="mt-4 text-red-200">{error}</div>}
           {result && (

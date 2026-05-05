@@ -83,7 +83,9 @@ export default function AdminLinks() {
     { key: 'short_code', label: 'Short', sortable: true,
       render: (r) => <a className="text-brand-600 font-medium" href={shortUrl(r.short_code)} target="_blank" rel="noreferrer">/{r.short_code}</a> },
     { key: 'owner', label: 'Owner', sortable: true,
-      render: (r) => <span className="text-slate-600 text-xs">{r.owner}</span> },
+      render: (r) => r.is_guest
+        ? <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">Guest</span>
+        : <span className="text-slate-600 text-xs">{r.owner}</span> },
     { key: 'original_url', label: 'Destination', sortable: true,
       render: (r) => <span className="truncate block max-w-xs text-slate-600" title={r.original_url}>{r.original_url}</span> },
     { key: 'category_name', label: 'Category', sortable: true,

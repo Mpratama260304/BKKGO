@@ -26,6 +26,7 @@ router.get('/config', (req, res) => {
     recaptchaSiteKey: c.siteKey,
     captcha: c, // { enabled, provider, siteKey }
     registrationEnabled: getFlag('registration_enabled', true),
+    guestShortenEnabled: getFlag('guest_shorten_enabled', true),
   });
 });
 

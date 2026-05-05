@@ -123,7 +123,9 @@ router.delete('/users/:id', (req, res) => {
 // ----- Links --------------------------------------------------------------------
 router.get('/links', (req, res) => {
   const rows = db.prepare(`
-    SELECT l.*, u.email AS owner, c.name AS category_name, c.color AS category_color
+    SELECT l.*,
+           CASE WHEN l.is_guest = 1 THEN 'Guest' ELSE u.email END AS owner,
+           c.name AS category_name, c.color AS category_color
     FROM links l
     JOIN users u ON u.id = l.user_id
     LEFT JOIN categories c ON c.id = l.category_id
@@ -222,17 +224,25 @@ router.get('/system-settings', requireRole('superadmin'), (req, res) => {
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   res.json({
     registration_enabled: map.registration_enabled !== '0', // default ON
+    guest_shorten_enabled: map.guest_shorten_enabled !== '0', // default ON
   });
 });
 
 router.put('/system-settings', requireRole('superadmin'), (req, res) => {
-  const { registration_enabled } = req.body || {};
+  const { registration_enabled, guest_shorten_enabled } = req.body || {};
   if (typeof registration_enabled === 'boolean') {
     db.prepare(`
       INSERT INTO system_settings (key, value, updated_at) VALUES ('registration_enabled', ?, CURRENT_TIMESTAMP)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
     `).run(registration_enabled ? '1' : '0');
     logActivity(req, 'system.update', 'setting', null, { registration_enabled });
+  }
+  if (typeof guest_shorten_enabled === 'boolean') {
+    db.prepare(`
+      INSERT INTO system_settings (key, value, updated_at) VALUES ('guest_shorten_enabled', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `).run(guest_shorten_enabled ? '1' : '0');
+    logActivity(req, 'system.update', 'setting', null, { guest_shorten_enabled });
   }
   res.json({ ok: true });
 });

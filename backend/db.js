@@ -122,6 +122,7 @@ ensureColumn('links', 'category_id', 'category_id INTEGER');
 ensureColumn('links', 'landing_delay_enabled', 'landing_delay_enabled INTEGER NOT NULL DEFAULT 0');
 ensureColumn('links', 'banner_ad_enabled', 'banner_ad_enabled INTEGER NOT NULL DEFAULT 0');
 ensureColumn('links', 'banner_id', 'banner_id INTEGER');
+ensureColumn('links', 'is_guest', 'is_guest INTEGER NOT NULL DEFAULT 0');
 
 function seedUser(name, email, password, role) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);

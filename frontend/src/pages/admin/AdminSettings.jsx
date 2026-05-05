@@ -38,6 +38,22 @@ export default function AdminSettings() {
     }
   }
 
+  async function toggleGuestShorten(next) {
+    setSavingSys(true); setSysMsg('');
+    try {
+      await api('/admin/system-settings', {
+        method: 'PUT',
+        body: { guest_shorten_enabled: next },
+      });
+      setSys((s) => ({ ...(s || {}), guest_shorten_enabled: next }));
+      setSysMsg(next ? 'Guest shortening enabled.' : 'Guest shortening disabled.');
+    } catch (e) {
+      setSysMsg(e.message || 'Failed to update');
+    } finally {
+      setSavingSys(false);
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
@@ -105,6 +121,40 @@ export default function AdminSettings() {
               </span>
             ) : <span className="text-slate-400">Loading…</span>}
             {sysMsg && <span className="ml-3 text-slate-500">{sysMsg}</span>}
+          </div>
+        </section>
+      )}
+
+      {user?.role === 'superadmin' && (
+        <section className="card p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-slate-800 mb-1">Guest / anonymous shortening</h2>
+              <p className="text-sm text-slate-500">
+                When disabled, the public homepage shortener form is hidden and any
+                unauthenticated POST to <code>/api/links/public</code> is rejected.
+                Visitors must sign in to create short links.
+              </p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer shrink-0 mt-1">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                disabled={savingSys || !sys}
+                checked={!!sys?.guest_shorten_enabled}
+                onChange={(e) => toggleGuestShorten(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-checked:bg-emerald-500 rounded-full relative transition-colors">
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${sys?.guest_shorten_enabled ? 'translate-x-5' : ''}`} />
+              </div>
+            </label>
+          </div>
+          <div className="mt-3 text-sm">
+            {sys ? (
+              <span className={sys.guest_shorten_enabled ? 'text-emerald-700' : 'text-amber-700'}>
+                Status: <strong>{sys.guest_shorten_enabled ? 'Enabled' : 'Disabled'}</strong>
+              </span>
+            ) : <span className="text-slate-400">Loading…</span>}
           </div>
         </section>
       )}

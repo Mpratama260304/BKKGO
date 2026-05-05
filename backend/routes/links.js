@@ -57,8 +57,16 @@ router.post('/', authRequired, (req, res) => {
   res.json(link);
 });
 
-// Public quick-shorten (no auth) - assigned to first admin so it persists
+// Public quick-shorten (no auth) - tagged is_guest=1 so admin UI doesn't
+// misattribute the link to the system owner shown in the FK column.
 router.post('/public', (req, res) => {
+  // Gate via system_settings.guest_shorten_enabled (default ON).
+  const flagRow = db.prepare("SELECT value FROM system_settings WHERE key = 'guest_shorten_enabled'").get();
+  const guestEnabled = flagRow ? (flagRow.value === '1' || flagRow.value === 'true') : true;
+  if (!guestEnabled) {
+    return res.status(403).json({ error: 'Guest shortening is currently disabled. Please sign in to create links.' });
+  }
+
   const { original_url } = req.body || {};
   if (!isValidUrl(original_url)) return res.status(400).json({ error: 'Invalid URL' });
   const owner = db.prepare("SELECT id FROM users WHERE role IN ('admin','superadmin') ORDER BY id LIMIT 1").get();
@@ -71,7 +79,7 @@ router.post('/public', (req, res) => {
 
   const info = db
     .prepare(
-      `INSERT INTO links (user_id, original_url, short_code) VALUES (?, ?, ?)`
+      `INSERT INTO links (user_id, original_url, short_code, is_guest) VALUES (?, ?, ?, 1)`
     )
     .run(owner.id, original_url, code);
   const link = db.prepare('SELECT id, original_url, short_code, created_at FROM links WHERE id = ?').get(info.lastInsertRowid);
@@ -84,10 +92,11 @@ router.get('/banners/available', authRequired, (req, res) => {
   res.json(rows);
 });
 
-// List user links
+// List user links (excludes guest-created links so the system-owner admin
+// account doesn't see anonymous public shortens in their personal dashboard).
 router.get('/', authRequired, (req, res) => {
   const links = db
-    .prepare('SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC')
+    .prepare('SELECT * FROM links WHERE user_id = ? AND is_guest = 0 ORDER BY created_at DESC')
     .all(req.user.id);
   res.json(links);
 });
