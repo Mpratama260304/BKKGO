@@ -1,10 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const { db, seedDefaults } = require('./db');
+const { enrichClickAsync } = require('./utils/geoip');
+
+// Production safety check — refuse to boot with the dev JWT secret in production.
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
+  console.error('[fatal] JWT_SECRET must be set to a strong value (>=32 chars) in production');
+  process.exit(1);
+}
 const authRoutes = require('./routes/auth');
 const linkRoutes = require('./routes/links');
 const analyticsRoutes = require('./routes/analytics');
@@ -15,11 +23,27 @@ const landingRoutes = require('./routes/landing');
 seedDefaults();
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+app.use(
+  helmet({
+    // Disable CSP here; the React app + inline Vite assets need their own policy.
+    // Tighten via a reverse proxy or extend this config for production.
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow QR/banner images
+  })
+);
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
+// Rate limit auth POSTs (login/register/forgot/reset). GET /config is not
+// sensitive and is fetched on every page load, so we exclude it.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'GET',
+});
 const publicShortenLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
 // Per-IP rate limit for authenticated link creation to mitigate abuse via stolen API keys.
 const createLinkLimiter = rateLimit({
@@ -71,10 +95,11 @@ function handleRedirect(req, res, next) {
     .prepare('SELECT 1 FROM clicks WHERE link_id = ? AND ip_address = ? LIMIT 1')
     .get(link.id, ip);
 
-  db.prepare(
+  const ins = db.prepare(
     `INSERT INTO clicks (link_id, ip_address, user_agent, referrer, country, is_qr)
      VALUES (?, ?, ?, ?, ?, ?)`
   ).run(link.id, ip, ua, referrer, null, isQr);
+  enrichClickAsync(ins.lastInsertRowid, ip);
 
   if (seen) {
     db.prepare('UPDATE links SET click_count = click_count + 1 WHERE id = ?').run(link.id);

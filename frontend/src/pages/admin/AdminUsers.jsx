@@ -15,6 +15,30 @@ export default function AdminUsers() {
   const [confirmDel, setConfirmDel] = useState(null);
   const [resetResult, setResetResult] = useState(null);
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState(new Set()); // bulk-selection user ids
+
+  function toggleSelect(id) {
+    setSelected((s) => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
+  function selectAll() {
+    setSelected(new Set(users.filter((u) => u.id !== user.id).map((u) => u.id)));
+  }
+  function clearSelection() { setSelected(new Set()); }
+
+  async function bulkAction(action) {
+    const ids = [...selected];
+    if (!ids.length) return;
+    if (action === 'delete' && !confirm(`Delete ${ids.length} user(s)? This cannot be undone.`)) return;
+    try {
+      await api('/admin/users/bulk', { method: 'POST', body: { ids, action } });
+      clearSelection();
+      load();
+    } catch (e) { setError(e.message); }
+  }
 
   async function load() {
     setLoading(true);
@@ -62,6 +86,9 @@ export default function AdminUsers() {
   }
 
   const columns = [
+    { key: 'sel', label: '', render: (r) => r.id === user.id ? null : (
+      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
+    ) },
     { key: 'email', label: 'Email', sortable: true },
     { key: 'name', label: 'Name', sortable: true },
     { key: 'role', label: 'Role', sortable: true,
@@ -91,7 +118,24 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-800">Users</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Users</h1>
+        <div className="flex items-center gap-2">
+          {selected.size > 0 ? (
+            <>
+              <span className="text-sm text-slate-500">{selected.size} selected</span>
+              <button onClick={() => bulkAction('block')} className="btn-outline text-xs">Block</button>
+              <button onClick={() => bulkAction('unblock')} className="btn-outline text-xs">Unblock</button>
+              {user.role === 'superadmin' && (
+                <button onClick={() => bulkAction('delete')} className="btn-outline text-xs text-red-600">Delete</button>
+              )}
+              <button onClick={clearSelection} className="btn-outline text-xs">Clear</button>
+            </>
+          ) : (
+            <button onClick={selectAll} className="btn-outline text-xs">Select all</button>
+          )}
+        </div>
+      </div>
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {loading ? <div className="text-slate-500">Loading…</div> :
         <DataTable columns={columns} rows={users} pageSize={10} searchPlaceholder="Search users by email, name, role…" />

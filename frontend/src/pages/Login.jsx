@@ -50,8 +50,9 @@ export default function Login() {
         {error && <div className="text-red-600 text-sm">{error}</div>}
         <button disabled={loading} className="btn-primary w-full">{loading ? 'Signing in…' : 'Sign In'}</button>
       </form>
-      <div className="mt-4 text-sm text-slate-600">
-        No account? <Link className="text-brand-600 font-medium" to="/register">Sign up</Link>
+      <div className="mt-4 text-sm text-slate-600 flex items-center justify-between">
+        <Link to="/forgot-password" className="text-brand-600">Forgot password?</Link>
+        <span>No account? <Link className="text-brand-600 font-medium" to="/register">Sign up</Link></span>
       </div>
     </div>
   );

@@ -215,6 +215,81 @@ router.delete('/categories/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ----- System settings (superadmin only) ----------------------------------------
+// Generic key/value flags used to gate features (registration, etc).
+router.get('/system-settings', requireRole('superadmin'), (req, res) => {
+  const rows = db.prepare('SELECT key, value FROM system_settings').all();
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  res.json({
+    registration_enabled: map.registration_enabled !== '0', // default ON
+  });
+});
+
+router.put('/system-settings', requireRole('superadmin'), (req, res) => {
+  const { registration_enabled } = req.body || {};
+  if (typeof registration_enabled === 'boolean') {
+    db.prepare(`
+      INSERT INTO system_settings (key, value, updated_at) VALUES ('registration_enabled', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `).run(registration_enabled ? '1' : '0');
+    logActivity(req, 'system.update', 'setting', null, { registration_enabled });
+  }
+  res.json({ ok: true });
+});
+
+// ----- Bulk operations ----------------------------------------------------------
+// POST /admin/users/bulk  body: { ids:[..], action: 'block'|'unblock'|'delete' }
+router.post('/users/bulk', (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
+  const action = req.body?.action;
+  if (!ids.length) return res.status(400).json({ error: 'No ids provided' });
+  if (!['block', 'unblock', 'delete'].includes(action))
+    return res.status(400).json({ error: 'Invalid action' });
+
+  const targets = db.prepare(
+    `SELECT id, role FROM users WHERE id IN (${ids.map(() => '?').join(',')})`
+  ).all(...ids);
+
+  // Guard: only superadmin may touch admin/superadmin accounts in bulk.
+  if (req.user.role !== 'superadmin' && targets.some((t) => t.role !== 'user'))
+    return res.status(403).json({ error: 'Only superadmin can modify admin accounts' });
+
+  // Never allow deleting/blocking yourself in bulk.
+  const safeIds = targets.filter((t) => t.id !== req.user.id).map((t) => t.id);
+  if (!safeIds.length) return res.json({ ok: true, affected: 0 });
+
+  const placeholders = safeIds.map(() => '?').join(',');
+  if (action === 'delete') {
+    db.prepare(`DELETE FROM users WHERE id IN (${placeholders})`).run(...safeIds);
+  } else {
+    const flag = action === 'block' ? 1 : 0;
+    db.prepare(`UPDATE users SET is_blocked = ? WHERE id IN (${placeholders})`)
+      .run(flag, ...safeIds);
+  }
+  logActivity(req, `user.bulk_${action}`, 'user', null, { ids: safeIds });
+  res.json({ ok: true, affected: safeIds.length });
+});
+
+// POST /admin/links/bulk  body: { ids:[..], action: 'block'|'unblock'|'delete' }
+router.post('/links/bulk', (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
+  const action = req.body?.action;
+  if (!ids.length) return res.status(400).json({ error: 'No ids provided' });
+  if (!['block', 'unblock', 'delete'].includes(action))
+    return res.status(400).json({ error: 'Invalid action' });
+
+  const placeholders = ids.map(() => '?').join(',');
+  if (action === 'delete') {
+    db.prepare(`DELETE FROM links WHERE id IN (${placeholders})`).run(...ids);
+  } else {
+    const flag = action === 'block' ? 1 : 0;
+    db.prepare(`UPDATE links SET is_blocked = ? WHERE id IN (${placeholders})`)
+      .run(flag, ...ids);
+  }
+  logActivity(req, `link.bulk_${action}`, 'link', null, { ids });
+  res.json({ ok: true, affected: ids.length });
+});
+
 // ----- Activity logs ------------------------------------------------------------
 router.get('/logs', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 200, 1000);

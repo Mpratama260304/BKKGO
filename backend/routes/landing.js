@@ -2,6 +2,7 @@
 // Frontend at /l/:code calls this, then JS performs window.location = original_url after countdown.
 const express = require('express');
 const { db } = require('../db');
+const { enrichClickAsync } = require('../utils/geoip');
 const router = express.Router();
 
 router.get('/landing/:code', (req, res) => {
@@ -50,9 +51,10 @@ router.post('/landing/:code/click', (req, res) => {
   const referrer = req.headers['referer'] || '';
 
   const seen = db.prepare('SELECT 1 FROM clicks WHERE link_id = ? AND ip_address = ? LIMIT 1').get(link.id, ip);
-  db.prepare(
+  const ins = db.prepare(
     `INSERT INTO clicks (link_id, ip_address, user_agent, referrer, country, is_qr) VALUES (?, ?, ?, ?, ?, 0)`
   ).run(link.id, ip, ua, referrer, null);
+  enrichClickAsync(ins.lastInsertRowid, ip);
   if (seen) {
     db.prepare('UPDATE links SET click_count = click_count + 1 WHERE id = ?').run(link.id);
   } else {

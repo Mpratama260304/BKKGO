@@ -19,6 +19,8 @@ import AdminSettings from './pages/admin/AdminSettings.jsx';
 import AdminCaptcha from './pages/admin/AdminCaptcha.jsx';
 import AdminBanners from './pages/admin/AdminBanners.jsx';
 import Landing from './pages/Landing.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import { useAuth } from './auth.jsx';
 
 function Private({ children, role }) {
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/l/:code" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
           <Route path="/links/:id" element={<Private><LinkStats /></Private>} />
           <Route path="/settings" element={<Private><Settings /></Private>} />

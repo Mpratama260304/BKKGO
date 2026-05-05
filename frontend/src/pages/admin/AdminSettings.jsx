@@ -9,12 +9,34 @@ export default function AdminSettings() {
   const [me, setMe] = useState(null);
   const [config, setConfig] = useState(null);
   const [health, setHealth] = useState(null);
+  const [sys, setSys] = useState(null);          // superadmin-only system flags
+  const [savingSys, setSavingSys] = useState(false);
+  const [sysMsg, setSysMsg] = useState('');
 
   useEffect(() => {
     api('/auth/me').then(setMe).catch(() => {});
     api('/auth/config').then(setConfig).catch(() => {});
     fetch('/api/health').then((r) => r.json()).then(setHealth).catch(() => {});
-  }, []);
+    if (user?.role === 'superadmin') {
+      api('/admin/system-settings').then(setSys).catch(() => {});
+    }
+  }, [user?.role]);
+
+  async function toggleRegistration(next) {
+    setSavingSys(true); setSysMsg('');
+    try {
+      await api('/admin/system-settings', {
+        method: 'PUT',
+        body: { registration_enabled: next },
+      });
+      setSys((s) => ({ ...(s || {}), registration_enabled: next }));
+      setSysMsg(next ? 'Registration enabled.' : 'Registration disabled.');
+    } catch (e) {
+      setSysMsg(e.message || 'Failed to update');
+    } finally {
+      setSavingSys(false);
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -52,6 +74,40 @@ export default function AdminSettings() {
           </dd>
         </dl>
       </section>
+
+      {user?.role === 'superadmin' && (
+        <section className="card p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-slate-800 mb-1">User registration</h2>
+              <p className="text-sm text-slate-500">
+                When disabled, the public <code>/register</code> form is hidden and any direct
+                POST to the API is rejected. Existing users are unaffected.
+              </p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer shrink-0 mt-1">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                disabled={savingSys || !sys}
+                checked={!!sys?.registration_enabled}
+                onChange={(e) => toggleRegistration(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-slate-300 peer-checked:bg-emerald-500 rounded-full relative transition-colors">
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${sys?.registration_enabled ? 'translate-x-5' : ''}`} />
+              </div>
+            </label>
+          </div>
+          <div className="mt-3 text-sm">
+            {sys ? (
+              <span className={sys.registration_enabled ? 'text-emerald-700' : 'text-amber-700'}>
+                Status: <strong>{sys.registration_enabled ? 'Enabled' : 'Disabled'}</strong>
+              </span>
+            ) : <span className="text-slate-400">Loading…</span>}
+            {sysMsg && <span className="ml-3 text-slate-500">{sysMsg}</span>}
+          </div>
+        </section>
+      )}
 
       <section className="card p-6">
         <h2 className="font-semibold text-slate-800 mb-3">Operational notes</h2>
