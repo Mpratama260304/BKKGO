@@ -78,6 +78,12 @@ router.post('/public', (req, res) => {
   res.json(link);
 });
 
+// List banners enabled (for users to select when toggling banner_ad_enabled)
+router.get('/banners/available', authRequired, (req, res) => {
+  const rows = db.prepare('SELECT id, name, image_path, width, height FROM banners WHERE enabled = 1 ORDER BY name').all();
+  res.json(rows);
+});
+
 // List user links
 router.get('/', authRequired, (req, res) => {
   const links = db
@@ -100,7 +106,14 @@ router.put('/:id', authRequired, (req, res) => {
   if (link.user_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role))
     return res.status(403).json({ error: 'Forbidden' });
 
-  const { original_url, custom_alias, title, expires_at } = req.body || {};
+  const original_url = cleanStr(req.body?.original_url, 2048);
+  const custom_alias = cleanStr(req.body?.custom_alias, 32);
+  const title = cleanStr(req.body?.title, 200);
+  const expires_at = cleanStr(req.body?.expires_at, 40);
+  const landing_delay_enabled = req.body?.landing_delay_enabled;
+  const banner_ad_enabled = req.body?.banner_ad_enabled;
+  const banner_id = req.body?.banner_id ? Number(req.body.banner_id) : null;
+
   if (original_url && !isValidUrl(original_url))
     return res.status(400).json({ error: 'Invalid URL' });
 
@@ -115,13 +128,19 @@ router.put('/:id', authRequired, (req, res) => {
        original_url = COALESCE(?, original_url),
        custom_alias = COALESCE(?, custom_alias),
        title = COALESCE(?, title),
-       expires_at = ?
+       expires_at = ?,
+       landing_delay_enabled = COALESCE(?, landing_delay_enabled),
+       banner_ad_enabled = COALESCE(?, banner_ad_enabled),
+       banner_id = COALESCE(?, banner_id)
      WHERE id = ?`
   ).run(
     original_url || null,
     custom_alias || null,
     title || null,
     expires_at || link.expires_at || null,
+    landing_delay_enabled == null ? null : landing_delay_enabled ? 1 : 0,
+    banner_ad_enabled == null ? null : banner_ad_enabled ? 1 : 0,
+    banner_id,
     link.id
   );
   res.json(db.prepare('SELECT * FROM links WHERE id = ?').get(link.id));
@@ -136,14 +155,14 @@ router.delete('/:id', authRequired, (req, res) => {
   res.json({ ok: true });
 });
 
-// QR code
+// QR code — default returns image inline for browser preview.
 router.get('/:id/qrcode', authRequired, async (req, res) => {
   const link = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
   if (!link) return res.status(404).json({ error: 'Not found' });
   if (link.user_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role))
     return res.status(403).json({ error: 'Forbidden' });
   const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const url = `${base}/${link.short_code}?qr=1`;
+  const url = `${base}/r/${link.short_code}?qr=1`;
   const format = (req.query.format || 'png').toLowerCase();
   if (format === 'svg') {
     const svg = await QRCode.toString(url, { type: 'svg', margin: 1, width: 320 });
@@ -152,6 +171,19 @@ router.get('/:id/qrcode', authRequired, async (req, res) => {
     const buf = await QRCode.toBuffer(url, { margin: 1, width: 512 });
     res.type('png').send(buf);
   }
+});
+
+// Forced-download variant
+router.get('/:id/qrcode/download', authRequired, async (req, res) => {
+  const link = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
+  if (!link) return res.status(404).json({ error: 'Not found' });
+  if (link.user_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role))
+    return res.status(403).json({ error: 'Forbidden' });
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const url = `${base}/r/${link.short_code}?qr=1`;
+  const buf = await QRCode.toBuffer(url, { margin: 1, width: 512 });
+  res.set('Content-Disposition', `attachment; filename="bkkgo-${link.short_code}.png"`);
+  res.type('png').send(buf);
 });
 
 module.exports = router;

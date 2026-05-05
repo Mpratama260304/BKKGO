@@ -73,6 +73,26 @@ CREATE TABLE IF NOT EXISTS clicks (
   FOREIGN KEY (link_id) REFERENCES links(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_clicks_link ON clicks(link_id);
+
+CREATE TABLE IF NOT EXISTS captcha_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL UNIQUE,
+  site_key TEXT,
+  secret_key TEXT,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS banners (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  image_path TEXT NOT NULL,
+  link_url TEXT,
+  width INTEGER,
+  height INTEGER,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 `);
 
 // Safe migrations for pre-existing databases — add columns if missing.
@@ -81,6 +101,9 @@ function ensureColumn(table, column, ddl) {
   if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
 }
 ensureColumn('links', 'category_id', 'category_id INTEGER');
+ensureColumn('links', 'landing_delay_enabled', 'landing_delay_enabled INTEGER NOT NULL DEFAULT 0');
+ensureColumn('links', 'banner_ad_enabled', 'banner_ad_enabled INTEGER NOT NULL DEFAULT 0');
+ensureColumn('links', 'banner_id', 'banner_id INTEGER');
 
 function seedUser(name, email, password, role) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);

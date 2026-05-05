@@ -9,6 +9,8 @@ const NAV = [
   { to: '/admin/links', label: 'Links', icon: '🔗' },
   { to: '/admin/analytics', label: 'Analytics', icon: '📈' },
   { to: '/admin/categories', label: 'Categories', icon: '🏷️' },
+  { to: '/admin/banners', label: 'Banner Ads', icon: '🎞️' },
+  { to: '/admin/captcha', label: 'CAPTCHA', icon: '🛡️' },
   { to: '/admin/logs', label: 'Activity Logs', icon: '📜' },
   { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ];
@@ -25,7 +27,7 @@ export default function AdminLayout() {
 
       <aside className={`fixed sm:static z-40 inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 transform transition-transform sm:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 grid place-items-center font-bold">B</div>
+          <img src="/logo.svg" alt="logo" className="w-9 h-9 rounded-lg bg-white p-0.5" />
           <div>
             <div className="font-bold">BKKGO Admin</div>
             <div className="text-xs text-slate-400">{user?.role}</div>

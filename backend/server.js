@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth');
 const linkRoutes = require('./routes/links');
 const analyticsRoutes = require('./routes/analytics');
 const adminRoutes = require('./routes/admin');
+const adminConfigRoutes = require('./routes/adminConfig');
+const landingRoutes = require('./routes/landing');
 
 seedDefaults();
 
@@ -34,7 +36,12 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/links/public', publicShortenLimiter);
 app.use('/api/links', createLinkLimiter, linkRoutes);
 app.use('/api', analyticsRoutes);
+app.use('/api', landingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminConfigRoutes);
+
+// Static uploads (banner images)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Public redirect handler.
 // Supports BOTH /:code AND /r/:code patterns. Apply the redirect rate limiter.
@@ -45,10 +52,15 @@ function handleRedirect(req, res, next) {
   const link = db
     .prepare('SELECT * FROM links WHERE short_code = ? OR custom_alias = ?')
     .get(code, code);
-  // Unknown / blocked / expired → fall through so the SPA's 404 page can render in production
   if (!link) return next();
   if (link.is_blocked) return next();
   if (link.expires_at && new Date(link.expires_at) < new Date()) return next();
+
+  // If landing page is enabled (or banner ad enabled), redirect to SPA landing route
+  // and let the React landing page handle the countdown + click logging.
+  if (link.landing_delay_enabled || link.banner_ad_enabled) {
+    return res.redirect(302, `/l/${link.short_code}`);
+  }
 
   const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
   const ua = req.headers['user-agent'] || '';

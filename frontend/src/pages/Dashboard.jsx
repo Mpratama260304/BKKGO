@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { api, shortUrl, getToken } from '../api';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import LinkOptionsModal from '../components/LinkOptionsModal.jsx';
+import QrPreviewModal from '../components/QrPreviewModal.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -11,6 +13,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [form, setForm] = useState({ original_url: '', custom_alias: '', title: '' });
   const [error, setError] = useState('');
+  const [optionsLink, setOptionsLink] = useState(null);
+  const [qrLink, setQrLink] = useState(null);
 
   async function load() {
     setLinks(await api('/links'));
@@ -44,7 +48,7 @@ export default function Dashboard() {
 
   function downloadQR(id) {
     const token = getToken();
-    fetch(`/api/links/${id}/qrcode`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/links/${id}/qrcode/download`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((b) => {
         const u = URL.createObjectURL(b);
@@ -122,7 +126,8 @@ export default function Dashboard() {
                 <td className="p-3 text-slate-500">{new Date(l.created_at).toLocaleDateString()}</td>
                 <td className="p-3 flex flex-wrap gap-2">
                   <Link to={`/links/${l.id}`} className="btn-outline text-xs">Stats</Link>
-                  <button onClick={() => downloadQR(l.id)} className="btn-outline text-xs">QR</button>
+                  <button onClick={() => setQrLink(l)} className="btn-outline text-xs">QR</button>
+                  <button onClick={() => setOptionsLink(l)} className="btn-outline text-xs">Options</button>
                   <button
                     onClick={() => { navigator.clipboard.writeText(shortUrl(l.short_code)); push('Copied!', 'success'); }}
                     className="btn-outline text-xs"
@@ -143,6 +148,9 @@ export default function Dashboard() {
       <div className="text-right">
         <Link to="/settings" className="text-sm text-brand-600 font-medium">Profile & API key →</Link>
       </div>
+
+      {optionsLink && <LinkOptionsModal link={optionsLink} onClose={() => setOptionsLink(null)} onSaved={load} />}
+      {qrLink && <QrPreviewModal link={qrLink} onClose={() => setQrLink(null)} />}
     </div>
   );
 }

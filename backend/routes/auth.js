@@ -6,15 +6,17 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { signToken, authRequired } = require('../middleware/auth');
 const { cleanStr } = require('../utils/sanitize');
-const { verifyCaptcha } = require('../utils/captcha');
+const { verifyCaptcha, getPublicConfig } = require('../utils/captcha');
 
 const router = express.Router();
 
 // Public config so frontend knows whether to render the captcha widget.
 router.get('/config', (req, res) => {
+  const c = getPublicConfig();
   res.json({
-    recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || null,
-    recaptchaEnabled: !!process.env.RECAPTCHA_SECRET,
+    recaptchaEnabled: c.enabled,
+    recaptchaSiteKey: c.siteKey,
+    captcha: c, // { enabled, provider, siteKey }
   });
 });
 

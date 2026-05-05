@@ -16,6 +16,9 @@ import AdminAnalytics from './pages/admin/AdminAnalytics.jsx';
 import AdminCategories from './pages/admin/AdminCategories.jsx';
 import AdminLogs from './pages/admin/AdminLogs.jsx';
 import AdminSettings from './pages/admin/AdminSettings.jsx';
+import AdminCaptcha from './pages/admin/AdminCaptcha.jsx';
+import AdminBanners from './pages/admin/AdminBanners.jsx';
+import Landing from './pages/Landing.jsx';
 import { useAuth } from './auth.jsx';
 
 function Private({ children, role }) {
@@ -29,13 +32,16 @@ function Private({ children, role }) {
 export default function App() {
   const loc = useLocation();
   const isAdminArea = loc.pathname.startsWith('/admin');
+  const isLandingArea = loc.pathname.startsWith('/l/');
+  const hideChrome = isAdminArea || isLandingArea;
 
   return (
     <div className="min-h-full flex flex-col">
-      {!isAdminArea && <Navbar />}
+      {!hideChrome && <Navbar />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/l/:code" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
@@ -51,12 +57,14 @@ export default function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="logs" element={<AdminLogs />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="captcha" element={<AdminCaptcha />} />
+            <Route path="banners" element={<AdminBanners />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isAdminArea && (
+      {!hideChrome && (
         <footer className="py-6 text-center text-xs text-slate-500">
           © {new Date().getFullYear()} BKKGO Shortlink System
         </footer>

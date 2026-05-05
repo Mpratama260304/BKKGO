@@ -7,8 +7,11 @@ export default function Navbar() {
     <header className="bg-white border-b border-slate-200">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-brand-600 text-white grid place-items-center font-bold">B</div>
-          <span className="font-bold text-lg text-slate-800">BKKGO</span>
+          <img src="/logo.svg" alt="BKK Ananda Cemerlang" className="w-9 h-9 rounded-lg" />
+          <div className="leading-tight">
+            <div className="font-bold text-slate-800">BKKGO</div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">BKK Ananda Cemerlang</div>
+          </div>
         </Link>
         <nav className="flex items-center gap-2">
           {user ? (
