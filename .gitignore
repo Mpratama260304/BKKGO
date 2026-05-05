@@ -7,3 +7,7 @@ build/
 *.db
 .DS_Store
 .vscode/
+
+# SQLite runtime files
+*.sqlite-shm
+*.sqlite-wal
