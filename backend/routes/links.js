@@ -24,7 +24,7 @@ function aliasTaken(alias) {
 
 // Create shortlink (auth required)
 router.post('/', authRequired, (req, res) => {
-  const { original_url, custom_alias, title, expires_at } = req.body || {};
+  const { original_url, custom_alias, title, expires_at, category_id } = req.body || {};
   if (!isValidUrl(original_url)) return res.status(400).json({ error: 'Invalid URL' });
 
   let code;
@@ -42,10 +42,10 @@ router.post('/', authRequired, (req, res) => {
 
   const info = db
     .prepare(
-      `INSERT INTO links (user_id, original_url, short_code, custom_alias, title, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO links (user_id, original_url, short_code, custom_alias, title, expires_at, category_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(req.user.id, original_url, code, custom_alias || null, title || null, expires_at || null);
+    .run(req.user.id, original_url, code, custom_alias || null, title || null, expires_at || null, category_id || null);
 
   const link = db.prepare('SELECT * FROM links WHERE id = ?').get(info.lastInsertRowid);
   res.json(link);

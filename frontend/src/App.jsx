@@ -1,12 +1,18 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import LinkStats from './pages/LinkStats.jsx';
-import Admin from './pages/Admin.jsx';
 import Settings from './pages/Settings.jsx';
+import AdminOverview from './pages/admin/AdminOverview.jsx';
+import AdminUsers from './pages/admin/AdminUsers.jsx';
+import AdminLinks from './pages/admin/AdminLinks.jsx';
+import AdminAnalytics from './pages/admin/AdminAnalytics.jsx';
+import AdminCategories from './pages/admin/AdminCategories.jsx';
+import AdminLogs from './pages/admin/AdminLogs.jsx';
 import { useAuth } from './auth.jsx';
 
 function Private({ children, role }) {
@@ -18,9 +24,12 @@ function Private({ children, role }) {
 }
 
 export default function App() {
+  const loc = useLocation();
+  const isAdminArea = loc.pathname.startsWith('/admin');
+
   return (
     <div className="min-h-full flex flex-col">
-      <Navbar />
+      {!isAdminArea && <Navbar />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -29,13 +38,25 @@ export default function App() {
           <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
           <Route path="/links/:id" element={<Private><LinkStats /></Private>} />
           <Route path="/settings" element={<Private><Settings /></Private>} />
-          <Route path="/admin" element={<Private role={['admin', 'superadmin']}><Admin /></Private>} />
+
+          {/* Admin area with sidebar layout */}
+          <Route path="/admin" element={<Private role={['admin', 'superadmin']}><AdminLayout /></Private>}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="links" element={<AdminLinks />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="logs" element={<AdminLogs />} />
+          </Route>
+
           <Route path="*" element={<div className="p-10 text-center">Not found</div>} />
         </Routes>
       </main>
-      <footer className="py-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} BKKGO Shortlink System
-      </footer>
+      {!isAdminArea && (
+        <footer className="py-6 text-center text-xs text-slate-500">
+          © {new Date().getFullYear()} BKKGO Shortlink System
+        </footer>
+      )}
     </div>
   );
 }

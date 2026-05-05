@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT '#2563eb',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS links (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -26,15 +33,33 @@ CREATE TABLE IF NOT EXISTS links (
   short_code TEXT NOT NULL UNIQUE,
   custom_alias TEXT UNIQUE,
   title TEXT,
+  category_id INTEGER,
   click_count INTEGER NOT NULL DEFAULT 0,
   unique_click_count INTEGER NOT NULL DEFAULT 0,
   is_blocked INTEGER NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   expires_at DATETIME,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_links_short_code ON links(short_code);
 CREATE INDEX IF NOT EXISTS idx_links_user ON links(user_id);
+CREATE INDEX IF NOT EXISTS idx_links_category ON links(category_id);
+
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_id INTEGER,
+  actor_email TEXT,
+  action TEXT NOT NULL,
+  target_type TEXT,
+  target_id INTEGER,
+  details TEXT,
+  ip_address TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_logs_created ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_logs_actor ON activity_logs(actor_id);
 
 CREATE TABLE IF NOT EXISTS clicks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +74,13 @@ CREATE TABLE IF NOT EXISTS clicks (
 );
 CREATE INDEX IF NOT EXISTS idx_clicks_link ON clicks(link_id);
 `);
+
+// Safe migrations for pre-existing databases — add columns if missing.
+function ensureColumn(table, column, ddl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+}
+ensureColumn('links', 'category_id', 'category_id INTEGER');
 
 function seedUser(name, email, password, role) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
