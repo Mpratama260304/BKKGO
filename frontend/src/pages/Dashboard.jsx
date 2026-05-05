@@ -47,6 +47,7 @@ export default function Dashboard() {
   }
 
   function downloadQR(id) {
+    // Kept for API key/CLI parity — direct download endpoint
     const token = getToken();
     fetch(`/api/links/${id}/qrcode/download`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
@@ -101,7 +102,8 @@ export default function Dashboard() {
       </div>
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-slate-50 text-slate-600 text-left">
             <tr>
               <th className="p-3">Short URL</th>
@@ -143,6 +145,7 @@ export default function Dashboard() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="text-right">

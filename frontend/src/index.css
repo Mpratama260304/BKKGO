@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 
-.btn { @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition; }
-.btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
-.btn-outline { @apply btn border border-slate-300 bg-white hover:bg-slate-100; }
-.input { @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500; }
+.btn { @apply inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-lg font-medium transition text-sm whitespace-nowrap; }
+.btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700; }
+.btn-outline { @apply btn border border-slate-300 bg-white hover:bg-slate-100 active:bg-slate-100; }
+.input { @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-base sm:text-sm; }
 .card { @apply bg-white rounded-xl shadow-sm border border-slate-200; }

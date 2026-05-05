@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import DataTable from '../../components/DataTable.jsx';
 import Modal from '../../components/Modal.jsx';
-import { api, shortUrl, getToken } from '../../api';
+import QrPreviewModal from '../../components/QrPreviewModal.jsx';
+import { api, shortUrl } from '../../api';
 
 export default function AdminLinks() {
   const [links, setLinks] = useState([]);
@@ -10,6 +11,7 @@ export default function AdminLinks() {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [qrLink, setQrLink] = useState(null);
   const [error, setError] = useState('');
 
   async function load() {
@@ -49,17 +51,6 @@ export default function AdminLinks() {
     load();
   }
 
-  function downloadQR(l) {
-    fetch(`/api/admin/links/${l.id}/qrcode`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => r.blob())
-      .then((b) => {
-        const u = URL.createObjectURL(b);
-        const a = document.createElement('a');
-        a.href = u; a.download = `bkkgo-${l.short_code}.png`; a.click();
-        URL.revokeObjectURL(u);
-      });
-  }
-
   function expiryStatus(l) {
     if (!l.expires_at) return <span className="text-slate-400 text-xs">—</span>;
     const exp = new Date(l.expires_at);
@@ -89,7 +80,7 @@ export default function AdminLinks() {
       <div className="flex flex-wrap gap-1">
         <button onClick={() => setEdit({ ...r })} className="btn-outline text-xs">Edit</button>
         <button onClick={() => blockToggle(r)} className="btn-outline text-xs">{r.is_blocked ? 'Unblock' : 'Block'}</button>
-        <button onClick={() => downloadQR(r)} className="btn-outline text-xs">QR</button>
+        <button onClick={() => setQrLink(r)} className="btn-outline text-xs">QR</button>
         <button onClick={() => navigator.clipboard.writeText(shortUrl(r.short_code))} className="btn-outline text-xs">Copy</button>
         <button onClick={() => setConfirmDel(r)} className="btn-outline text-xs text-red-600">Delete</button>
       </div>
@@ -153,6 +144,14 @@ export default function AdminLinks() {
       >
         Delete <strong>/{confirmDel?.short_code}</strong> permanently? All associated click data will also be removed.
       </Modal>
+
+      {qrLink && (
+        <QrPreviewModal
+          link={qrLink}
+          apiPath={`/api/admin/links/${qrLink.id}/qrcode`}
+          onClose={() => setQrLink(null)}
+        />
+      )}
     </div>
   );
 }

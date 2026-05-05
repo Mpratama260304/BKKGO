@@ -50,13 +50,13 @@ export default function Home() {
 
           {error && <div className="mt-4 text-red-200">{error}</div>}
           {result && (
-            <div className="mt-6 bg-white text-slate-800 rounded-xl p-4 flex items-center justify-between gap-3">
-              <a className="text-brand-600 font-semibold" href={shortUrl(result.short_code)} target="_blank" rel="noreferrer">
+            <div className="mt-6 bg-white text-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <a className="text-brand-600 font-semibold break-all text-left" href={shortUrl(result.short_code)} target="_blank" rel="noreferrer">
                 {shortUrl(result.short_code)}
               </a>
               <button
                 onClick={() => navigator.clipboard.writeText(shortUrl(result.short_code))}
-                className="btn-outline"
+                className="btn-outline self-start sm:self-auto"
               >
                 Copy
               </button>
