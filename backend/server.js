@@ -25,6 +25,7 @@ const analyticsRoutes = require('./routes/analytics');
 const adminRoutes = require('./routes/admin');
 const adminConfigRoutes = require('./routes/adminConfig');
 const landingRoutes = require('./routes/landing');
+const superadminRoutes = require('./routes/superadmin');
 
 seedDefaults();
 
@@ -69,6 +70,7 @@ app.use('/api', analyticsRoutes);
 app.use('/api', landingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminConfigRoutes);
+app.use('/api/superadmin', superadminRoutes);
 
 // Static uploads (banner images)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
