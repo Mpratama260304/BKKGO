@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+.git
+.github
+.vscode
+*.log
+backend/bkkgo.sqlite*
+backend/uploads/banners/*
+!backend/uploads/banners/.gitkeep
+frontend/dist
+.env
+**/.env
+.DS_Store
