@@ -8,10 +8,16 @@ const rateLimit = require('express-rate-limit');
 const { db, seedDefaults } = require('./db');
 const { enrichClickAsync } = require('./utils/geoip');
 
-// Production safety check — refuse to boot with the dev JWT secret in production.
-if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
-  console.error('[fatal] JWT_SECRET must be set to a strong value (>=32 chars) in production');
-  process.exit(1);
+// Production safety check — if JWT_SECRET is missing/weak, auto-generate a
+// random one and warn loudly. Tokens won't survive a restart in this mode,
+// which forces operators to set a real secret. We do NOT crash, so the
+// container still becomes healthy on hosting platforms.
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  process.env.JWT_SECRET = require('crypto').randomBytes(48).toString('hex');
+  console.warn(
+    '[warn] JWT_SECRET was missing or too short. A random secret was generated for this process.\n' +
+    '       Tokens will be invalidated on restart. Set JWT_SECRET (>=32 chars) in your environment.'
+  );
 }
 const authRoutes = require('./routes/auth');
 const linkRoutes = require('./routes/links');
