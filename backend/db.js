@@ -148,6 +148,16 @@ function seedDefaults() {
     process.env.SUPERADMIN_PASSWORD || 'Anonymous263',
     'superadmin'
   );
+
+  // ---- Safety net: a blocked superadmin can never log in, so if every
+  // superadmin in the DB is blocked we auto-unblock them all on boot.
+  // This guarantees there's always at least one usable superadmin and
+  // prevents permanent lockout from accidental self-block.
+  const supers = db.prepare("SELECT id, is_blocked FROM users WHERE role = 'superadmin'").all();
+  if (supers.length > 0 && supers.every((u) => u.is_blocked === 1)) {
+    db.prepare("UPDATE users SET is_blocked = 0 WHERE role = 'superadmin'").run();
+    console.log('[safety] All superadmins were blocked — auto-unblocked to restore access.');
+  }
 }
 
 module.exports = { db, seedDefaults };

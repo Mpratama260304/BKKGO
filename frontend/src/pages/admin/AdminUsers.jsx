@@ -101,10 +101,16 @@ export default function AdminUsers() {
         : <span className="text-emerald-600 text-xs">Active</span> },
     { key: 'created_at', label: 'Joined', sortable: true,
       render: (r) => <span className="text-slate-500 text-xs">{new Date(r.created_at).toLocaleDateString()}</span> },
-    { key: 'actions', label: 'Actions', render: (r) => (
+    { key: 'actions', label: 'Actions', render: (r) => {
+      // Block button is hidden for: yourself (would lock you out) and any
+      // superadmin account (superadmins are protected from being blocked).
+      const canBlock = r.id !== user.id && r.role !== 'superadmin';
+      return (
       <div className="flex flex-wrap gap-1">
         <button onClick={() => setEdit({ ...r })} className="btn-outline text-xs">Edit</button>
-        <button onClick={() => blockToggle(r)} className="btn-outline text-xs">{r.is_blocked ? 'Unblock' : 'Block'}</button>
+        {canBlock && (
+          <button onClick={() => blockToggle(r)} className="btn-outline text-xs">{r.is_blocked ? 'Unblock' : 'Block'}</button>
+        )}
         <button onClick={() => resetPassword(r)} className="btn-outline text-xs">Reset PW</button>
         {user.role === 'superadmin' && r.id !== user.id && (
           <>
@@ -113,7 +119,8 @@ export default function AdminUsers() {
           </>
         )}
       </div>
-    ) },
+      );
+    } },
   ];
 
   return (
@@ -168,8 +175,18 @@ export default function AdminUsers() {
               </label>
             )}
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={!!edit.is_blocked} onChange={(e) => setEdit({ ...edit, is_blocked: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={!!edit.is_blocked}
+                disabled={edit.id === user.id || edit.role === 'superadmin'}
+                onChange={(e) => setEdit({ ...edit, is_blocked: e.target.checked })}
+              />
               Block this account
+              {(edit.id === user.id || edit.role === 'superadmin') && (
+                <span className="text-xs text-slate-400">
+                  ({edit.id === user.id ? 'cannot block yourself' : 'superadmins are protected'})
+                </span>
+              )}
             </label>
           </form>
         )}

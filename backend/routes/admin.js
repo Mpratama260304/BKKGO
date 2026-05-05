@@ -70,6 +70,26 @@ router.put('/users/:id', (req, res) => {
   if (role && req.user.role !== 'superadmin')
     return res.status(403).json({ error: 'Only superadmin can change roles' });
 
+  // ---- Self-lockout & superadmin protection ----
+  // 1) Never allow blocking your own account (would lock you out instantly).
+  // 2) Never allow blocking ANY superadmin account — a blocked superadmin
+  //    cannot log in, and if all are blocked the system has no admin recovery.
+  // 3) Never allow demoting the LAST superadmin (would leave the system
+  //    without a superadmin forever).
+  if (is_blocked != null && !!Number(is_blocked)) {
+    if (target.id === req.user.id)
+      return res.status(400).json({ error: 'You cannot block your own account.' });
+    if (target.role === 'superadmin')
+      return res.status(400).json({ error: 'Superadmin accounts cannot be blocked.' });
+  }
+  if (role && role !== target.role && target.role === 'superadmin') {
+    const others = db.prepare(
+      "SELECT COUNT(*) AS c FROM users WHERE role = 'superadmin' AND id != ?"
+    ).get(target.id).c;
+    if (others === 0)
+      return res.status(400).json({ error: 'Cannot demote the last remaining superadmin.' });
+  }
+
   if (email && email !== target.email) {
     const dupe = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (dupe) return res.status(409).json({ error: 'Email already in use' });
@@ -114,6 +134,14 @@ router.delete('/users/:id', (req, res) => {
   if (target.role !== 'user' && req.user.role !== 'superadmin')
     return res.status(403).json({ error: 'Only superadmin can delete admins' });
   if (target.id === req.user.id) return res.status(400).json({ error: 'Cannot delete yourself' });
+  // Block deleting the last remaining superadmin.
+  if (target.role === 'superadmin') {
+    const others = db.prepare(
+      "SELECT COUNT(*) AS c FROM users WHERE role = 'superadmin' AND id != ?"
+    ).get(target.id).c;
+    if (others === 0)
+      return res.status(400).json({ error: 'Cannot delete the last remaining superadmin.' });
+  }
 
   db.prepare('DELETE FROM users WHERE id = ?').run(target.id);
   logActivity(req, 'user.delete', 'user', target.id, { email: target.email });
@@ -264,8 +292,15 @@ router.post('/users/bulk', (req, res) => {
   if (req.user.role !== 'superadmin' && targets.some((t) => t.role !== 'user'))
     return res.status(403).json({ error: 'Only superadmin can modify admin accounts' });
 
-  // Never allow deleting/blocking yourself in bulk.
-  const safeIds = targets.filter((t) => t.id !== req.user.id).map((t) => t.id);
+  // ---- Critical safety filters ----
+  // - Never act on yourself (would lock you out).
+  // - For 'block' & 'delete', protect ALL superadmin accounts so the system
+  //   can never end up with zero usable superadmins.
+  let safe = targets.filter((t) => t.id !== req.user.id);
+  if (action === 'block' || action === 'delete') {
+    safe = safe.filter((t) => t.role !== 'superadmin');
+  }
+  const safeIds = safe.map((t) => t.id);
   if (!safeIds.length) return res.json({ ok: true, affected: 0 });
 
   const placeholders = safeIds.map(() => '?').join(',');
