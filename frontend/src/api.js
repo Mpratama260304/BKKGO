@@ -23,6 +23,11 @@ export async function api(path, { method = 'GET', body, raw = false } = {}) {
   return data;
 }
 
+// Build the public short URL.
+// We use the /r/ prefix so the link works both in:
+//   - dev (Vite proxies /r → backend on :4000)
+//   - production single-process (backend serves /r/:code AND /:code)
+// Backend also accepts the bare /:code form for compatibility / external use.
 export function shortUrl(code) {
-  return `${window.location.origin}/${code}`;
+  return `${window.location.origin}/r/${code}`;
 }
