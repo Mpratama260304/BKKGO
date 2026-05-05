@@ -8,19 +8,21 @@ import Dashboard from './pages/Dashboard.jsx';
 import LinkStats from './pages/LinkStats.jsx';
 import Settings from './pages/Settings.jsx';
 import NotFound from './pages/NotFound.jsx';
+import Unauthorized from './pages/Unauthorized.jsx';
 import AdminOverview from './pages/admin/AdminOverview.jsx';
 import AdminUsers from './pages/admin/AdminUsers.jsx';
 import AdminLinks from './pages/admin/AdminLinks.jsx';
 import AdminAnalytics from './pages/admin/AdminAnalytics.jsx';
 import AdminCategories from './pages/admin/AdminCategories.jsx';
 import AdminLogs from './pages/admin/AdminLogs.jsx';
+import AdminSettings from './pages/admin/AdminSettings.jsx';
 import { useAuth } from './auth.jsx';
 
 function Private({ children, role }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-10 text-center text-slate-500">Loading…</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (role && !role.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (role && !role.includes(user.role)) return <Unauthorized />;
   return children;
 }
 
@@ -48,6 +50,7 @@ export default function App() {
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="logs" element={<AdminLogs />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

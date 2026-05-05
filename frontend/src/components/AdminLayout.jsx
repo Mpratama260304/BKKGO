@@ -10,6 +10,7 @@ const NAV = [
   { to: '/admin/analytics', label: 'Analytics', icon: '📈' },
   { to: '/admin/categories', label: 'Categories', icon: '🏷️' },
   { to: '/admin/logs', label: 'Activity Logs', icon: '📜' },
+  { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default function AdminLayout() {

@@ -19,17 +19,26 @@ app.use(express.json({ limit: '1mb' }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
 const publicShortenLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
+// Per-IP rate limit for authenticated link creation to mitigate abuse via stolen API keys.
+const createLinkLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  skip: (req) => req.method !== 'POST' || req.path !== '/',
+});
+// Generous limit on redirects so legitimate traffic isn't throttled but bots are slowed.
+const redirectLimiter = rateLimit({ windowMs: 60 * 1000, max: 240 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, name: 'BKKGO' }));
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/links/public', publicShortenLimiter);
-app.use('/api/links', linkRoutes);
+app.use('/api/links', createLinkLimiter, linkRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Public redirect handler — must come last so it doesn't shadow /api or assets
-app.get('/:code', (req, res, next) => {
+// Public redirect handler.
+// Supports BOTH /:code AND /r/:code patterns. Apply the redirect rate limiter.
+function handleRedirect(req, res, next) {
   const code = req.params.code;
   if (!/^[a-zA-Z0-9_-]{3,64}$/.test(code)) return next();
 
@@ -64,7 +73,10 @@ app.get('/:code', (req, res, next) => {
   }
 
   res.redirect(302, link.original_url);
-});
+}
+
+app.get('/r/:code', redirectLimiter, handleRedirect);
+app.get('/:code', redirectLimiter, handleRedirect);
 
 // Optional: serve frontend build if present
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');

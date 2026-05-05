@@ -3,6 +3,7 @@ const { customAlphabet } = require('nanoid');
 const QRCode = require('qrcode');
 const { db } = require('../db');
 const { authRequired } = require('../middleware/auth');
+const { cleanStr } = require('../utils/sanitize');
 
 const router = express.Router();
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 7);
@@ -24,7 +25,12 @@ function aliasTaken(alias) {
 
 // Create shortlink (auth required)
 router.post('/', authRequired, (req, res) => {
-  const { original_url, custom_alias, title, expires_at, category_id } = req.body || {};
+  const original_url = cleanStr(req.body?.original_url, 2048);
+  const custom_alias = cleanStr(req.body?.custom_alias, 32);
+  const title = cleanStr(req.body?.title, 200);
+  const expires_at = cleanStr(req.body?.expires_at, 40);
+  const category_id = req.body?.category_id ? Number(req.body.category_id) : null;
+
   if (!isValidUrl(original_url)) return res.status(400).json({ error: 'Invalid URL' });
 
   let code;

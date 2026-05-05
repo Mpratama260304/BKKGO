@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, shortUrl, getToken } from '../api';
 import { useAuth } from '../auth.jsx';
+import { useToast } from '../components/Toast.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { push } = useToast();
   const [links, setLinks] = useState([]);
   const [stats, setStats] = useState(null);
   const [form, setForm] = useState({ original_url: '', custom_alias: '', title: '' });
@@ -25,15 +27,18 @@ export default function Dashboard() {
     try {
       await api('/links', { method: 'POST', body: form });
       setForm({ original_url: '', custom_alias: '', title: '' });
+      push('Shortlink created', 'success');
       load();
     } catch (err) {
       setError(err.message);
+      push(err.message, 'error');
     }
   }
 
   async function remove(id) {
     if (!confirm('Delete this link?')) return;
     await api(`/links/${id}`, { method: 'DELETE' });
+    push('Link deleted', 'success');
     load();
   }
 
@@ -119,7 +124,7 @@ export default function Dashboard() {
                   <Link to={`/links/${l.id}`} className="btn-outline text-xs">Stats</Link>
                   <button onClick={() => downloadQR(l.id)} className="btn-outline text-xs">QR</button>
                   <button
-                    onClick={() => navigator.clipboard.writeText(shortUrl(l.short_code))}
+                    onClick={() => { navigator.clipboard.writeText(shortUrl(l.short_code)); push('Copied!', 'success'); }}
                     className="btn-outline text-xs"
                   >
                     Copy

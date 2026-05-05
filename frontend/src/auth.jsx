@@ -18,15 +18,15 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
-    const { token, user } = await api('/auth/login', { method: 'POST', body: { email, password } });
+  async function login(email, password, captchaToken) {
+    const { token, user } = await api('/auth/login', { method: 'POST', body: { email, password, captchaToken } });
     setToken(token);
     setUser(user);
     return user;
   }
 
-  async function register(name, email, password) {
-    const { token, user } = await api('/auth/register', { method: 'POST', body: { name, email, password } });
+  async function register(name, email, password, captchaToken) {
+    const { token, user } = await api('/auth/register', { method: 'POST', body: { name, email, password, captchaToken } });
     setToken(token);
     setUser(user);
     return user;
