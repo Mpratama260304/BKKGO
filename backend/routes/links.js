@@ -162,7 +162,7 @@ router.get('/:id/qrcode', authRequired, async (req, res) => {
   if (link.user_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role))
     return res.status(403).json({ error: 'Forbidden' });
   const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const url = `${base}/r/${link.short_code}?qr=1`;
+  const url = `${base}/${link.short_code}?qr=1`;
   const format = (req.query.format || 'png').toLowerCase();
   if (format === 'svg') {
     const svg = await QRCode.toString(url, { type: 'svg', margin: 1, width: 320 });
@@ -180,7 +180,7 @@ router.get('/:id/qrcode/download', authRequired, async (req, res) => {
   if (link.user_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role))
     return res.status(403).json({ error: 'Forbidden' });
   const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const url = `${base}/r/${link.short_code}?qr=1`;
+  const url = `${base}/${link.short_code}?qr=1`;
   const buf = await QRCode.toBuffer(url, { margin: 1, width: 512 });
   res.set('Content-Disposition', `attachment; filename="bkkgo-${link.short_code}.png"`);
   res.type('png').send(buf);

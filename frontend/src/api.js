@@ -24,10 +24,12 @@ export async function api(path, { method = 'GET', body, raw = false } = {}) {
 }
 
 // Build the public short URL.
-// We use the /r/ prefix so the link works both in:
-//   - dev (Vite proxies /r → backend on :4000)
-//   - production single-process (backend serves /r/:code AND /:code)
-// Backend also accepts the bare /:code form for compatibility / external use.
+// In production the backend serves the bare /:code redirect (clean short links
+// like https://bkkgo.link/abc123). In Vite dev mode (port 5173) the dev server
+// would intercept bare paths, so we fall back to the /r/ prefix which is
+// proxied to the backend. Backend supports BOTH /:code and /r/:code.
 export function shortUrl(code) {
-  return `${window.location.origin}/r/${code}`;
+  const origin = window.location.origin;
+  const isViteDev = window.location.port === '5173';
+  return isViteDev ? `${origin}/r/${code}` : `${origin}/${code}`;
 }
