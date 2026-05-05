@@ -7,6 +7,7 @@ import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import LinkStats from './pages/LinkStats.jsx';
 import Settings from './pages/Settings.jsx';
+import NotFound from './pages/NotFound.jsx';
 import AdminOverview from './pages/admin/AdminOverview.jsx';
 import AdminUsers from './pages/admin/AdminUsers.jsx';
 import AdminLinks from './pages/admin/AdminLinks.jsx';
@@ -49,7 +50,7 @@ export default function App() {
             <Route path="logs" element={<AdminLogs />} />
           </Route>
 
-          <Route path="*" element={<div className="p-10 text-center">Not found</div>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {!isAdminArea && (

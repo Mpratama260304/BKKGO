@@ -36,10 +36,10 @@ app.get('/:code', (req, res, next) => {
   const link = db
     .prepare('SELECT * FROM links WHERE short_code = ? OR custom_alias = ?')
     .get(code, code);
-  if (!link) return res.status(404).send('Link not found');
-  if (link.is_blocked) return res.status(410).send('Link blocked');
-  if (link.expires_at && new Date(link.expires_at) < new Date())
-    return res.status(410).send('Link expired');
+  // Unknown / blocked / expired → fall through so the SPA's 404 page can render in production
+  if (!link) return next();
+  if (link.is_blocked) return next();
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return next();
 
   const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
   const ua = req.headers['user-agent'] || '';
